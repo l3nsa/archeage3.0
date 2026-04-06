@@ -1,8 +1,8 @@
-language: csharp  
-sudo: required  
-dist: xenial  
+language: csharp
+sudo: required
+dist: focal
 mono: none
-dotnet: 2.2.103
-script:  
+dotnet: 6.0.x
+script:
   - dotnet restore
   - dotnet build
