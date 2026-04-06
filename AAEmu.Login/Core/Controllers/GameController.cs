@@ -14,6 +14,9 @@ namespace AAEmu.Login.Core.Controllers
 {
     public class GameController : Singleton<GameController>
     {
+        private const int WorldListRequestTimeoutMs = 20000;
+        private const byte DefaultDenialReason = 0;
+
         private static readonly Logger _log = LogManager.GetCurrentClassLogger();
         private readonly Dictionary<byte, GameServer> _gameServers;
         private readonly Dictionary<byte, byte> _mirrorsId;
@@ -113,7 +116,7 @@ namespace AAEmu.Login.Core.Controllers
             if (_gameServers.Values.Any(x => x.Active))
             {
                 var gameServers = _gameServers.Values.ToList();
-                var (requestIds, task) = RequestController.Instance.Create(gameServers.Count, 20000); // TODO Request 20s
+                var (requestIds, task) = RequestController.Instance.Create(gameServers.Count, WorldListRequestTimeoutMs);
                 for (var i = 0; i < gameServers.Count; i++)
                 {
                     var value = gameServers[i];
@@ -175,7 +178,7 @@ namespace AAEmu.Login.Core.Controllers
             }
             else if (result == 1)
             {
-                connection.SendPacket(new ACEnterWorldDeniedPacket(0)); // TODO change reason
+                connection.SendPacket(new ACEnterWorldDeniedPacket(DefaultDenialReason)); // TODO change reason
             }
             else
             {

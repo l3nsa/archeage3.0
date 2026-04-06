@@ -374,9 +374,15 @@ namespace AAEmu.Game.Core.Managers
         public void Build(GameConnection connection, uint designId, Point position, float zRot,
             ulong itemId, int moneyAmount, int ht, bool autoUseAaPoint)
         {
-            // TODO validate house by range...
             // TODO remove itemId
             // TODO minus moneyAmount
+
+            if (!ValidateHousePosition(position.X, position.Y, position.Z))
+            {
+                _log.Warn("Build: Invalid house position ({0}, {1}, {2}) for character {3}",
+                    position.X, position.Y, position.Z, connection.ActiveChar.Id);
+                return;
+            }
 
             var zoneId = WorldManager.Instance.GetZoneId(1, position.X, position.Y);
             var house = Create(designId);
@@ -405,6 +411,19 @@ namespace AAEmu.Game.Core.Managers
 
             connection.ActiveChar.SendPacket(new SCMyHousePacket(house));
             house.Spawn();
+        }
+
+        private bool ValidateHousePosition(float x, float y, float z)
+        {
+            // Check for invalid coordinate values
+            if (float.IsNaN(x) || float.IsNaN(y) || float.IsNaN(z))
+                return false;
+            if (float.IsInfinity(x) || float.IsInfinity(y) || float.IsInfinity(z))
+                return false;
+            // Basic bounds check - coordinates should be within world limits
+            if (Math.Abs(x) > 100000 || Math.Abs(y) > 100000 || Math.Abs(z) > 100000)
+                return false;
+            return true;
         }
 
         public void ChangeHousePermission(GameConnection connection, ushort tlId, HousingPermission permission)

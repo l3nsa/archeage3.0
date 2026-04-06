@@ -18,6 +18,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
     /// </summary>
     internal class Line : Patrol
     {
+        private const uint NpcIdSeaTransport = 13677;
+        private const uint NpcIdLandTransport = 13676;
+        private const uint NpcIdAirTransport = 13680;
+
         //public Point LastPatrolPosition { get; set; }
 
         private bool move;
@@ -102,11 +106,11 @@ namespace AAEmu.Game.Models.Game.Units.Route
             // Change NPC coordinates
             moveType.X = npc.Position.X;
             moveType.Y = npc.Position.Y;
-            if (npc.TemplateId == 13677 || npc.TemplateId == 13676) // swimming
+            if (npc.TemplateId == NpcIdSeaTransport || npc.TemplateId == NpcIdLandTransport) // swimming
             {
                 moveType.Z = 98.5993f;
             }
-            else if (npc.TemplateId == 13680) // shark
+            else if (npc.TemplateId == NpcIdAirTransport) // shark
             {
                 moveType.Z = 95.5993f;
             }
