@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -37,7 +38,10 @@ namespace AAEmu.Game.Core.Managers
                 string data = File.ReadAllText("AccessLevels.json");
                 d = JsonConvert.DeserializeObject<Dictionary<string, int>>(data);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _log.Error(ex, "Failed to read AccessLevels.json");
+            }
             return d;
         }
     }

@@ -2672,7 +2672,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
         public override void Execute(BaseUnit unit)
         {
-            throw new NotImplementedException();
+            // TODO: Implement base unit route execution for Simulation
         }
 
         public override void Execute(Npc npc)
@@ -2687,7 +2687,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
         }
         public override void Execute(Gimmick gimmick)
         {
-            throw new NotImplementedException();
+            // TODO: Implement gimmick route execution for Simulation
         }
     }
 }

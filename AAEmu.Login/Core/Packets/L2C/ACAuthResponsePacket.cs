@@ -1,4 +1,7 @@
-﻿using AAEmu.Commons.Network;
+﻿using System;
+using System.Security.Cryptography;
+
+using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.L2C
@@ -6,15 +9,14 @@ namespace AAEmu.Login.Core.Packets.L2C
     public class ACAuthResponsePacket : LoginPacket
     {
         private readonly ulong _accountId;
-        //private readonly byte[] _wsk;
         private readonly string _wsk;
         private readonly byte _slotCount;
 
         public ACAuthResponsePacket(ulong accountId, byte slotCount) : base(0x03)
         {
             _accountId = accountId;
-            //_wsk = new byte[32]; 
-            _wsk = "65CCBF5AF8DB8B633D3C03C5A8735601"; //TODO: генерация //ADBDAE13A28D415889FE34F20B268C97
+            var sessionKeyBytes = RandomNumberGenerator.GetBytes(16);
+            _wsk = BitConverter.ToString(sessionKeyBytes).Replace("-", "").ToUpperInvariant();
             _slotCount = slotCount;
         }
 
