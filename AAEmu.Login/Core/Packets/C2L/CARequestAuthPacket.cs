@@ -23,7 +23,11 @@ namespace AAEmu.Login.Core.Packets.C2L
 
             LoginController.Login(Connection, account);
 
-            // Connection.SendPacket(new ACChallengePacket()); // TODO ...
+            // TODO: Challenge-response authentication is disabled. The ACChallengePacket
+            // handshake is not yet implemented and enabling it would break the current
+            // direct-login flow. A full challenge-response protocol (server sends challenge,
+            // client signs it, server verifies) should be implemented for production use.
+            // Connection.SendPacket(new ACChallengePacket());
         }
     }
 }

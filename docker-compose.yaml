@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: aaemu_login
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./SQL:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  login:
+    build:
+      context: .
+      dockerfile: AAEmu.Login/Dockerfile
+    ports:
+      - "1237:1237"
+      - "1234:1234"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./AAEmu.Login/Config.json:/app/Config.json
+
+  game:
+    build:
+      context: .
+      dockerfile: AAEmu.Game/Dockerfile
+    ports:
+      - "1239:1239"
+      - "1250:1250"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      login:
+        condition: service_started
+    volumes:
+      - ./AAEmu.Game/Config.json:/app/Config.json
+      - ./AAEmu.Game/Data:/app/Data
+
+  adminer:
+    image: adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+
+volumes:
+  mysql_data:

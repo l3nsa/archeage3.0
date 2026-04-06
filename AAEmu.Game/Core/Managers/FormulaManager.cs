@@ -62,6 +62,11 @@ namespace AAEmu.Game.Core.Managers
             CalculationEngine.AddFunction("if_negative", (a, b, c) => a < 0 ? b : c);
             CalculationEngine.AddFunction("if_positive", (a, b, c) => a > 0 ? b : c);
             CalculationEngine.AddFunction("if_zero", (a, b, c) => a == 0 ? b : c);
+            CalculationEngine.AddFunction("min", (a, b) => Math.Min(a, b));
+            CalculationEngine.AddFunction("max", (a, b) => Math.Max(a, b));
+            CalculationEngine.AddFunction("floor", (a) => Math.Floor(a));
+            CalculationEngine.AddFunction("log", (a) => Math.Log(a));
+            CalculationEngine.AddFunction("sqrt", (a) => Math.Sqrt(a));
 
             _unitFormulas = new Dictionary<UnitOwnerType, Dictionary<UnitFormulaKind, UnitFormula>>();
             foreach (var owner in Enum.GetValues(typeof(UnitOwnerType)))

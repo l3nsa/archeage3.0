@@ -49,7 +49,10 @@ namespace AAEmu.Login.Core.Controllers
                             return;
                         }
 
-                        // TODO ... validation password
+                        // TODO: Password validation is not implemented for the Kr auth method.
+                        // The Kr login flow trusts the client-provided username without verifying
+                        // credentials. A proper password hash comparison (matching the EU method)
+                        // should be added before deploying to a non-trusted environment.
 
                         connection.AccountId = reader.GetUInt64("id");
                         connection.AccountName = username;
