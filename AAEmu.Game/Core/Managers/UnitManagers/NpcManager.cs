@@ -48,6 +48,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 return _templates[templateId];
             }
 
+            AAEmu.Game.Core.Managers.MissingDataLogger.Instance.ReportTemplate("npcs", templateId, "NpcManager.GetTemplate");
             return null;
         }
 
@@ -192,10 +193,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             }
 
             // choose randomly from the list totalCustomId
-            if (modelParamsId != 0)
+            if (modelParamsId != 0 && _tccLookup.TryGetValue(modelParamsId, out var li) && li.Count > 0)
             {
-                var li = _tccLookup[modelParamsId];
-                var index = LoadRandom.Next(_tccLookup[modelParamsId].Count);
+                var index = LoadRandom.Next(li.Count);
                 totalCustomId = li[index];
             }
             else
@@ -382,11 +382,25 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             // old
                             //reader.GetBytes("modifier", 0, custom.Modifier, 0, 128);
 
-                            // 3030
-                            var blob = (string)reader.GetValue("modifier");
-                            if (blob != null)
+                            // 3030: modifier may be stored either as hex string or as raw BLOB.
+                            var modifierValue = reader.GetValue("modifier");
+                            switch (modifierValue)
                             {
-                                custom.Modifier = Helpers.StringToByteArray(blob);
+                                case string blobStr when !string.IsNullOrEmpty(blobStr):
+                                    custom.Modifier = Helpers.StringToByteArray(blobStr);
+                                    break;
+                                case byte[] blobBytes:
+                                    custom.Modifier = blobBytes;
+                                    break;
+                                case null:
+                                case DBNull _:
+                                    break;
+                                default:
+                                    MissingDataLogger.Instance.ReportGeneric(
+                                        "NPC_MODIFIER_TYPE",
+                                        modifierValue.GetType().FullName,
+                                        "NpcManager.Load");
+                                    break;
                             }
 
                             // 3503

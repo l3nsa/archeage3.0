@@ -46,6 +46,20 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void Use(Unit caster, SkillCaster casterType, SkillCastTarget targetType, SkillObject skillObject = null)
         {
+            // Server-side cooldown enforcement for players (prevents skill spam)
+            // Only honour the skill's own cooldown_time; client uses its own DB for GCD/UI,
+            // so making up a GCD here causes desync.
+            if (caster is Character && Template.CooldownTime > 0)
+            {
+                if (caster.CooldownsSkills != null && caster.CooldownsSkills.TryGetValue(TemplateId, out var readyAt))
+                {
+                    if (DateTime.UtcNow < readyAt)
+                        return; // still on cooldown; client is already blocking
+                    caster.CooldownsSkills.Remove(TemplateId);
+                }
+                caster.CooldownsSkills[TemplateId] = DateTime.UtcNow.AddMilliseconds(Template.CooldownTime);
+            }
+
             //if (caster is Character chr)
             //{
             //    var dist = MathUtil.CalculateDistance(chr.Position, chr.CurrentTarget.Position, true);

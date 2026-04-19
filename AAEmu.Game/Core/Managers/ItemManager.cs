@@ -69,7 +69,10 @@ namespace AAEmu.Game.Core.Managers
 
         public ItemTemplate GetTemplate(uint id)
         {
-            return _templates.ContainsKey(id) ? _templates[id] : null;
+            if (_templates.ContainsKey(id))
+                return _templates[id];
+            MissingDataLogger.Instance.ReportTemplate("item_templates", id, "ItemManager.GetTemplate");
+            return null;
         }
 
         public GradeTemplate GetGradeTemplate(int grade)

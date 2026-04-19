@@ -132,7 +132,7 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
 
-            _log.Info("Loaded crafts", _crafts.Count);
+            _log.Info("Loaded {0} crafts", _crafts.Count);
         }
 
         public Craft GetCraftById(uint craftId)

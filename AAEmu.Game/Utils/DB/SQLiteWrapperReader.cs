@@ -1,12 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 
+using AAEmu.Game.Core.Managers;
+
 using Microsoft.Data.Sqlite;
 
 namespace AAEmu.Game.Utils.DB
 {
+    /// <summary>
+    /// Wrapper around <see cref="SqliteDataReader"/> that is tolerant of schema drift
+    /// (columns present in code but missing from this particular version of compact.sqlite3).
+    /// Missing columns are reported once via <see cref="MissingDataLogger"/> and then
+    /// every subsequent getter call returns a sensible default, so the server keeps
+    /// running instead of crashing and we accumulate the list of gaps for later.
+    /// </summary>
     public class SQLiteWrapperReader : IDisposable
     {
+        private const int MissingOrdinal = -1;
+
         private readonly SqliteDataReader _reader;
         private readonly Dictionary<string, int> _ordinal;
 
@@ -18,14 +29,54 @@ namespace AAEmu.Game.Utils.DB
 
         public bool Read() => _reader.Read();
 
+        // ------------------------------------------------------------------
+        // Ordinal lookup
+        // ------------------------------------------------------------------
+
+        public int GetOrdinal(string column)
+        {
+            if (_ordinal.TryGetValue(column, out var cached))
+                return cached;
+
+            int ordinal;
+            try
+            {
+                ordinal = _reader.GetOrdinal(column);
+            }
+            catch (Exception)
+            {
+                ordinal = MissingOrdinal;
+                // Try to include table name hint — SqliteDataReader does not expose it directly,
+                // so we only record the column name. Good enough for the gap inventory.
+                MissingDataLogger.Instance.ReportGeneric("SQLITE_COLUMN", column, "SQLiteWrapperReader.GetOrdinal");
+            }
+
+            _ordinal[column] = ordinal;
+            return ordinal;
+        }
+
+        public bool IsDBNull(string column)
+        {
+            var ord = GetOrdinal(column);
+            return ord == MissingOrdinal || _reader.IsDBNull(ord);
+        }
+
+        // ------------------------------------------------------------------
+        // Primitive getters — all return a default for missing columns.
+        // ------------------------------------------------------------------
+
         public object GetValue(string column)
         {
-            return _reader.GetValue(GetOrdinal(column));
+            var ord = GetOrdinal(column);
+            return ord == MissingOrdinal ? null : _reader.GetValue(ord);
         }
 
         public bool GetBoolean(string column)
         {
-            return _reader.GetBoolean(GetOrdinal(column));
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal || _reader.IsDBNull(ord))
+                return false;
+            return _reader.GetBoolean(ord);
         }
 
         public bool GetBoolean(string column, bool fromString)
@@ -44,128 +95,160 @@ namespace AAEmu.Game.Utils.DB
 
         public byte GetByte(string column)
         {
-            return _reader.GetByte(GetOrdinal(column));
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal || _reader.IsDBNull(ord))
+                return 0;
+            return _reader.GetByte(ord);
         }
 
         public byte GetByte(string column, byte defaultValue)
         {
-            var ordinal = GetOrdinal(column);
-            if (_reader.IsDBNull(ordinal))
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal || _reader.IsDBNull(ord))
                 return defaultValue;
-            return _reader.GetByte(ordinal);
+            return _reader.GetByte(ord);
         }
 
         public long GetBytes(string column, long fieldOffset, byte[] buffer, int bufferOffset, int length)
         {
-            return _reader.GetBytes(GetOrdinal(column), fieldOffset, buffer, bufferOffset, length);
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal)
+                return 0L;
+            return _reader.GetBytes(ord, fieldOffset, buffer, bufferOffset, length);
         }
 
         public char GetChar(string column)
         {
-            return _reader.GetChar(GetOrdinal(column));
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal || _reader.IsDBNull(ord))
+                return '\0';
+            return _reader.GetChar(ord);
         }
 
         public long GetChars(string column, long fieldOffset, char[] buffer, int bufferOffset, int length)
         {
-            return _reader.GetChars(GetOrdinal(column), fieldOffset, buffer, bufferOffset, length);
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal)
+                return 0L;
+            return _reader.GetChars(ord, fieldOffset, buffer, bufferOffset, length);
         }
 
         public Guid GetGuid(string column)
         {
-            return _reader.GetGuid(GetOrdinal(column));
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal || _reader.IsDBNull(ord))
+                return Guid.Empty;
+            return _reader.GetGuid(ord);
         }
 
         public short GetInt16(string column)
         {
-            return _reader.GetInt16(GetOrdinal(column));
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal || _reader.IsDBNull(ord))
+                return 0;
+            return unchecked((short)_reader.GetInt64(ord));
         }
 
-        public ushort GetUInt16(string column) => (ushort)GetInt16(column);
+        public ushort GetUInt16(string column) => unchecked((ushort)GetInt16(column));
 
         public int GetInt32(string column)
         {
-            return _reader.GetInt32(GetOrdinal(column));
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal || _reader.IsDBNull(ord))
+                return 0;
+            // SQLite stores INTEGER as 8-byte; widen to Int64 and unchecked-cast to avoid
+            // OverflowException for values outside Int32 range.
+            return unchecked((int)_reader.GetInt64(ord));
         }
 
         public int GetInt32(string column, int defaultValue)
         {
-            var ordinal = GetOrdinal(column);
-            if (_reader.IsDBNull(ordinal))
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal || _reader.IsDBNull(ord))
                 return defaultValue;
-            return _reader.GetInt32(ordinal);
+            return unchecked((int)_reader.GetInt64(ord));
         }
 
-        public uint GetUInt32(string column) => (uint)GetInt32(column);
+        public uint GetUInt32(string column)
+        {
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal || _reader.IsDBNull(ord))
+                return 0u;
+            return unchecked((uint)_reader.GetInt64(ord));
+        }
 
         public uint GetUInt32(string column, uint defaultValue)
         {
-            var ordinal = GetOrdinal(column);
-            if (_reader.IsDBNull(ordinal))
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal || _reader.IsDBNull(ord))
                 return defaultValue;
-            return (uint)GetInt32(column);
+            return unchecked((uint)_reader.GetInt64(ord));
         }
 
         public long GetInt64(string column)
         {
-            return _reader.GetInt64(GetOrdinal(column));
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal || _reader.IsDBNull(ord))
+                return 0L;
+            return _reader.GetInt64(ord);
         }
 
-        public ulong GetUInt64(string column) => (ulong)GetInt64(column);
+        public ulong GetUInt64(string column) => unchecked((ulong)GetInt64(column));
 
         public float GetFloat(string column)
         {
-            return _reader.GetFloat(GetOrdinal(column));
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal || _reader.IsDBNull(ord))
+                return 0f;
+            return _reader.GetFloat(ord);
         }
 
         public float GetFloat(string column, float defaultValue)
         {
-            var ordinal = GetOrdinal(column);
-            if (_reader.IsDBNull(ordinal))
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal || _reader.IsDBNull(ord))
                 return defaultValue;
-            return _reader.GetFloat(ordinal);
+            return _reader.GetFloat(ord);
         }
 
         public double GetDouble(string column)
         {
-            return _reader.GetDouble(GetOrdinal(column));
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal || _reader.IsDBNull(ord))
+                return 0d;
+            return _reader.GetDouble(ord);
         }
 
         public string GetString(string column)
         {
-            return _reader.GetString(GetOrdinal(column));
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal || _reader.IsDBNull(ord))
+                return string.Empty;
+            return _reader.GetString(ord);
         }
 
         public string GetString(string column, string defaultValue)
         {
-            var ordinal = GetOrdinal(column);
-            if (_reader.IsDBNull(ordinal))
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal || _reader.IsDBNull(ord))
                 return defaultValue;
-            return _reader.GetString(ordinal);
+            return _reader.GetString(ord);
         }
 
         public decimal GetDecimal(string column)
         {
-            return _reader.GetDecimal(GetOrdinal(column));
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal || _reader.IsDBNull(ord))
+                return 0m;
+            return _reader.GetDecimal(ord);
         }
 
         public DateTime GetDateTime(string column)
         {
-            return _reader.GetDateTime(GetOrdinal(column));
-        }
-
-        public bool IsDBNull(string column)
-        {
-            return _reader.IsDBNull(GetOrdinal(column));
-        }
-
-        public int GetOrdinal(string column)
-        {
-            if (_ordinal.ContainsKey(column))
-                return _ordinal[column];
-
-            var ordinal = _reader.GetOrdinal(column);
-            _ordinal.Add(column, ordinal);
-            return ordinal;
+            var ord = GetOrdinal(column);
+            if (ord == MissingOrdinal || _reader.IsDBNull(ord))
+                return DateTime.MinValue;
+            return _reader.GetDateTime(ord);
         }
 
         public void Dispose()

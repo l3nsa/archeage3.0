@@ -187,20 +187,23 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void SpawnAll()
         {
+            var npcOk = 0; var npcFail = 0;
             foreach (var (worldId, worldSpawners) in _npcSpawners)
             {
                 foreach (var spawner in worldSpawners.Values)
                 {
-                    //spawner.SpawnAll();
-                    spawner.Spawn(spawner.Id);
+                    try { spawner.Spawn(spawner.Id); npcOk++; }
+                    catch (Exception ex) { npcFail++; _log.Warn("NpcSpawner {0} failed: {1}", spawner.Id, ex.Message); }
                 }
             }
+            _log.Info("SpawnManager: spawned {0} npcs ({1} failed)", npcOk, npcFail);
 
             foreach (var (worldId, worldSpawners) in _doodadSpawners)
             {
                 foreach (var spawner in worldSpawners.Values)
                 {
-                    spawner.Spawn(0);
+                    try { spawner.Spawn(0); }
+                    catch (Exception ex) { _log.Warn("DoodadSpawner {0} failed: {1}", spawner.Id, ex.Message); }
                 }
             }
 
@@ -208,7 +211,8 @@ namespace AAEmu.Game.Core.Managers.World
             {
                 foreach (var spawner in worldSpawners.Values)
                 {
-                    spawner.SpawnAll();
+                    try { spawner.SpawnAll(); }
+                    catch (Exception ex) { _log.Warn("TransferSpawner {0} failed: {1}", spawner.Id, ex.Message); }
                 }
             }
 
@@ -216,7 +220,8 @@ namespace AAEmu.Game.Core.Managers.World
             {
                 foreach (var spawner in worldSpawners.Values)
                 {
-                    spawner.Spawn(0);
+                    try { spawner.Spawn(0); }
+                    catch (Exception ex) { _log.Warn("GimmickSpawner {0} failed: {1}", spawner.Id, ex.Message); }
                 }
             }
 

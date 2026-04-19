@@ -18,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_character.HonorPoint);
             stream.Write(_character.VocationPoint);
 
-            for (var i = 0; i < 8; i++)
+            for (var i = 0; i < 10; i++)
             {
                 stream.Write(0); // point
             }

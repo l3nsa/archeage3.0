@@ -242,15 +242,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 case Character character:
                     {
                         stream.Write((byte)character.Skills.Skills.Count);       // learnedSkillCount
-                        if (character.Skills.Skills.Count >= 0)
-                        {
-                            _log.Warn("Warning! character.learnedSkillCount = {0}", character.Skills.Skills.Count);
-                        }
                         stream.Write((byte)character.Skills.PassiveBuffs.Count); // passiveBuffCount
-                        if (character.Skills.Skills.Count >= 0)
-                        {
-                            _log.Warn("Warning! character.passiveBuffCount = {0}", character.Skills.PassiveBuffs.Count);
-                        }
                         stream.Write(character.HighAbilityRsc);                  // highAbilityRsc
 
                         foreach (var skill in character.Skills.Skills.Values)

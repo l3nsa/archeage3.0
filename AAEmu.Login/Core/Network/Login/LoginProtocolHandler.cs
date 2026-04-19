@@ -128,6 +128,7 @@ namespace AAEmu.Login.Core.Network.Login
                         }
                         else
                         {
+                            _log.Info("Received packet 0x{0:x2} ({1}) from {2}", type, classType.Name, connection.Ip);
                             var packet = (LoginPacket)Activator.CreateInstance(classType);
                             packet.Connection = connection;
                             packet.Decode(stream2);
@@ -143,8 +144,9 @@ namespace AAEmu.Login.Core.Network.Login
             }
             catch (Exception e)
             {
-                connection?.Shutdown();
-                _log.Error(e);
+                _log.Error("[LoginProtocolError] Client {0}: {1}", connection?.Ip, e.Message);
+                _log.Debug(e);
+                // Don't shutdown — keep the client connected
             }
         }
 

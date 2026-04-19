@@ -121,11 +121,9 @@ namespace AAEmu.Game.Models.Game.Transfers
                             transfer.Position.Z = point.Z;
 
                             transfer.WorldPos = new WorldPos(Helpers.ConvertLongX(point.X), Helpers.ConvertLongY(point.Y), point.Z);
-                            _log.Warn("TransfersPath #" + transfer.TemplateId);
-                            _log.Warn("New spawn X={0}", transfer.Position.X);
-                            _log.Warn("New spawn Y={0}", transfer.Position.Y);
-                            _log.Warn("New spawn Z={0}", transfer.Position.Z);
-                            _log.Warn("transfer.Rot={0}, rotZ={1}, zoneId={2}", transfer.Rot, transfer.Position.RotationZ, transfer.Position.ZoneId);
+                            _log.Trace("TransfersPath #{0} spawn=({1},{2},{3}) rot={4} rotZ={5} zoneId={6}",
+                                transfer.TemplateId, transfer.Position.X, transfer.Position.Y, transfer.Position.Z,
+                                transfer.Rot, transfer.Position.RotationZ, transfer.Position.ZoneId);
 
                             //transfer.InPatrol = false;
 

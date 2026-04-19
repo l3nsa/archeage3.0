@@ -259,10 +259,17 @@ namespace AAEmu.Game.Models.Game.Char
                 {
                     while (reader.Read())
                     {
+                        byte[] cqBytes;
+                        try
+                        {
+                            var raw = reader.GetValue(reader.GetOrdinal("data"));
+                            cqBytes = raw is byte[] b ? b : new byte[8];
+                        }
+                        catch { cqBytes = new byte[8]; }
                         var quest = new CompletedQuest
                         {
                             Id = reader.GetUInt16("id"),
-                            Body = new BitArray((byte[])reader.GetValue("data"))
+                            Body = new BitArray(cqBytes)
                         };
                         CompletedQuests.Add(quest.Id, quest);
                     }
@@ -283,11 +290,25 @@ namespace AAEmu.Game.Models.Game.Char
                             TemplateId = reader.GetUInt32("template_id"),
                             Status = (QuestStatus)reader.GetByte("status")
                         };
-                        quest.ReadData((byte[])reader.GetValue("data"));
+                        try
+                        {
+                            var rawData = reader.GetValue(reader.GetOrdinal("data"));
+                            quest.ReadData(rawData is byte[] bytes ? bytes : new byte[0]);
+                        }
+                        catch (Exception ex)
+                        {
+                            _log.Warn("CharacterQuests.Load: failed to read data blob for quest {0}: {1}", quest.TemplateId, ex.Message);
+                        }
                         quest.Owner = Owner;
                         quest.Template = QuestManager.Instance.GetTemplate(quest.TemplateId);
-                        quest.RecalcObjectives(false);
-                        Quests.Add(quest.TemplateId, quest);
+                        if (quest.Template == null)
+                        {
+                            _log.Warn("CharacterQuests.Load: no quest template for id {0}, skipping", quest.TemplateId);
+                            continue;
+                        }
+                        try { quest.RecalcObjectives(false); }
+                        catch (Exception ex) { _log.Warn("CharacterQuests.Load: RecalcObjectives failed for quest {0}: {1}", quest.TemplateId, ex.Message); }
+                        Quests[quest.TemplateId] = quest;
                     }
                 }
             }

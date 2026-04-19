@@ -532,11 +532,9 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 var time = transfer.Template.WaitTime;
                 WaitTime = DateTime.UtcNow.AddSeconds(time);
-                _log.Info("TransfersPath #" + transfer.Template.Id);
-                _log.Warn("path #" + Steering);
-                _log.Warn("walk to #" + MoveStepIndex);
-                _log.Info("pause to #" + time);
-                _log.Warn("x:=" + transfer.Position.X + " y:=" + transfer.Position.Y + " z:=" + transfer.Position.Z);
+                _log.Trace("TransfersPath #{0} path={1} step={2} pause={3}s pos=({4},{5},{6})",
+                    transfer.Template.Id, Steering, MoveStepIndex, time,
+                    transfer.Position.X, transfer.Position.Y, transfer.Position.Z);
             }
         }
 
@@ -726,11 +724,9 @@ namespace AAEmu.Game.Models.Game.Units
                 time = transfer.Template.TransferAllPaths[Steering].WaitTimeStart;
                 WaitTime = DateTime.UtcNow.AddSeconds(time);
             }
-            _log.Info("TransfersPath #" + transfer.Template.Id);
-            _log.Warn("path #" + Steering);
-            _log.Warn("walk to #" + MoveStepIndex);
-            _log.Info("pause to #" + time);
-            _log.Warn("x:=" + transfer.Position.X + " y:=" + transfer.Position.Y + " z:=" + transfer.Position.Z);
+            _log.Trace("TransfersPath #{0} path={1} step={2} pause={3}s pos=({4},{5},{6})",
+                transfer.Template.Id, Steering, MoveStepIndex, time,
+                transfer.Position.X, transfer.Position.Y, transfer.Position.Z);
         }
 
         public bool DoSpeedReduction()

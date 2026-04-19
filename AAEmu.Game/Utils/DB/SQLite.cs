@@ -22,6 +22,7 @@ namespace AAEmu.Game.Utils.DB
             catch (Exception e)
             {
                 _log.Error("Error on SQLite connect: {0}", e.Message);
+                AAEmu.Game.Core.Managers.MissingDataLogger.Instance.ReportSqlite("compact.sqlite3", e.Message, "SQLite.CreateConnection");
                 return null;
             }
 

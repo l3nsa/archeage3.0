@@ -158,8 +158,12 @@ namespace AAEmu.Game.Core.Network.Game
                 }
                 catch (Exception ex)
                 {
-                    _log.Fatal(ex);
-                    throw;
+                    _log.Error("[PacketError] {0} (0x{1:X3}) from {2}: {3}",
+                        GetType().Name, TypeId, Connection?.Ip, ex.Message);
+                    _log.Debug(ex);
+                    AAEmu.Game.Core.Managers.MissingDataLogger.Instance.ReportGeneric(
+                        "PACKET_CRASH", $"{GetType().Name}(0x{TypeId:X3}): {ex.Message}");
+                    // Don't rethrow — keep the client connected
                 }
             }
             return this;

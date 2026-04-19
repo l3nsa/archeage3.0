@@ -35,8 +35,10 @@ namespace AAEmu.Login.Core.Network.Login
             }
             catch (Exception ex)
             {
-                _log.Fatal(ex);
-                throw;
+                _log.Error("[LoginPacketError] {0} (0x{1:X3}): {2}",
+                    GetType().Name, TypeId, ex.Message);
+                _log.Debug(ex);
+                // Don't rethrow — keep the client connected
             }
 
             return this;

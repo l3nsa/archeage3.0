@@ -41,7 +41,10 @@ namespace AAEmu.Commons.Utils
         /// <param name="color">Color of the logo.</param>
         public static void WriteHeader(string consoleTitle, ConsoleColor color)
         {
-            Console.Title = TitlePrefix + consoleTitle;
+            if (OperatingSystem.IsWindows())
+            {
+                Console.Title = TitlePrefix + consoleTitle;
+            }
 
             WriteSeperator();
 
@@ -63,7 +66,21 @@ namespace AAEmu.Commons.Utils
         /// </summary>
         public static void WriteSeperator()
         {
-            Console.WriteLine("".PadLeft(Console.WindowWidth, '_'));
+            var width = SafeWindowWidth();
+            Console.WriteLine("".PadLeft(width, '_'));
+        }
+
+        private static int SafeWindowWidth()
+        {
+            try
+            {
+                var w = Console.WindowWidth;
+                return w > 0 ? w : 80;
+            }
+            catch
+            {
+                return 80;
+            }
         }
 
         /// <summary>
@@ -92,11 +109,15 @@ namespace AAEmu.Commons.Utils
                 referenceLength = line.Length;
             }
 
-            Console.WriteLine(line.PadLeft(line.Length + Console.WindowWidth / 2 - referenceLength / 2));
+            Console.WriteLine(line.PadLeft(line.Length + SafeWindowWidth() / 2 - referenceLength / 2));
         }
 
         public static void LoadingTitle()
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                return;
+            }
             if (!Console.Title.StartsWith("* "))
             {
                 Console.Title = "* " + Console.Title;
@@ -105,6 +126,10 @@ namespace AAEmu.Commons.Utils
 
         public static void RunningTitle()
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                return;
+            }
             Console.Title = Console.Title.TrimStart('*', ' ');
         }
 
@@ -129,6 +154,11 @@ namespace AAEmu.Commons.Utils
         /// </summary>
         public static bool CheckAdmin()
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                // On Linux/macOS, treat root (UID 0) as admin.
+                return Environment.UserName == "root";
+            }
             var id = WindowsIdentity.GetCurrent();
             var principal = new WindowsPrincipal(id);
 

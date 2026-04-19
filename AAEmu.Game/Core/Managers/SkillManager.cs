@@ -52,7 +52,9 @@ namespace AAEmu.Game.Core.Managers
 
         public List<SkillTemplate> GetStartAbilitySkills(AbilityType ability)
         {
-            return _startAbilitySkills[ability];
+            if (_startAbilitySkills.TryGetValue(ability, out var list))
+                return list;
+            return new List<SkillTemplate>();
         }
 
         public List<DefaultSkill> GetDefaultSkills()

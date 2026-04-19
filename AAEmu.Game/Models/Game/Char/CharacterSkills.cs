@@ -38,6 +38,7 @@ namespace AAEmu.Game.Models.Game.Char
         public void AddSkill(uint skillId)
         {
             var template = SkillManager.Instance.GetSkillTemplate(skillId);
+            if (template == null) return;
             if (template.AbilityId > 0 &&
                 template.AbilityId != (byte)Owner.Ability1 &&
                 template.AbilityId != (byte)Owner.Ability2 &&
@@ -82,26 +83,29 @@ namespace AAEmu.Game.Models.Game.Char
         public void AddSkill(uint skillId, bool newlyLearned)
         {
             var template = SkillManager.Instance.GetSkillTemplate(skillId);
+            if (template == null) return;
             if (template.AbilityId > 10 || template.SkillPoints > GetRemainingSkillPoints())
             {
                 return;
             }
 
             int skillTreeLevel = -1;
+            int GetAbilityExp(AbilityType ab)
+            {
+                return Owner.Abilities != null && Owner.Abilities.Abilities != null
+                    && Owner.Abilities.Abilities.TryGetValue(ab, out var a) ? a.Exp : 0;
+            }
             if ((byte)Owner.Ability1 == template.AbilityId)
             {
-                skillTreeLevel =
-                    ExpirienceManager.Instance.GetLevelFromExp(Owner.Abilities.Abilities[Owner.Ability1].Exp);
+                skillTreeLevel = ExpirienceManager.Instance.GetLevelFromExp(GetAbilityExp(Owner.Ability1));
             }
             else if ((byte)Owner.Ability2 == template.AbilityId)
             {
-                skillTreeLevel =
-                    ExpirienceManager.Instance.GetLevelFromExp(Owner.Abilities.Abilities[Owner.Ability2].Exp);
+                skillTreeLevel = ExpirienceManager.Instance.GetLevelFromExp(GetAbilityExp(Owner.Ability2));
             }
             else if ((byte)Owner.Ability3 == template.AbilityId)
             {
-                skillTreeLevel =
-                    ExpirienceManager.Instance.GetLevelFromExp(Owner.Abilities.Abilities[Owner.Ability3].Exp);
+                skillTreeLevel = ExpirienceManager.Instance.GetLevelFromExp(GetAbilityExp(Owner.Ability3));
             }
 
             if (Owner.Level >= 10 && skillTreeLevel < 10)
@@ -140,6 +144,7 @@ namespace AAEmu.Game.Models.Game.Char
         public void AddBuff(uint buffId)
         {
             var template = SkillManager.Instance.GetPassiveBuffTemplate(buffId);
+            if (template == null) return;
             if (template.AbilityId > 0 &&
                template.AbilityId != (byte)Owner.Ability1 &&
                template.AbilityId != (byte)Owner.Ability2 &&
@@ -173,6 +178,7 @@ namespace AAEmu.Game.Models.Game.Char
         public void AddPassive(uint passiveId, bool newlyLearned)
         {
             var template = SkillManager.Instance.GetPassiveBuffTemplate(passiveId);
+            if (template == null) return;
             if (template.AbilityId > 10 || GetRemainingSkillPoints() < 1 || PassiveBuffs.ContainsKey(template.BuffId))
             {
                 return;
@@ -216,6 +222,7 @@ namespace AAEmu.Game.Models.Game.Char
             if (!Owner.Effects.CheckBuff(template.BuffId))
             {
                 var buffTemplate = SkillManager.Instance.GetBuffTemplate(template.BuffId);
+                if (buffTemplate == null) return;
                 buffTemplate.Kind = BuffKind.Hidden; //TODO: change all passive buffs in SQLite db's (client && server) to be hidden so they don't appear on the buff bar
                 Owner.Effects.AddEffect(new Effect(Owner, Owner, SkillCaster.GetByType(EffectOriginType.Skill), buffTemplate, null, DateTime.UtcNow));
             }
@@ -268,6 +275,7 @@ namespace AAEmu.Game.Models.Game.Char
         public bool IsVariantOfSkill(uint skillId)
         {
             var skillTemplate = SkillManager.Instance.GetSkillTemplate(skillId);
+            if (skillTemplate == null) return false;
 
             return Skills.Values.Any(skill =>
                 skill.Template.AbilityId == skillTemplate.AbilityId &&

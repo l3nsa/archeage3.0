@@ -1377,6 +1377,11 @@ namespace AAEmu.Game.Models.Game.Char
         public void Load()
         {
             var template = CharacterManager.Instance.GetTemplate((byte)Race, (byte)Gender);
+            if (template == null)
+            {
+                _log.Warn("Character.Load: no template for race={0}, gender={1} (char id {2})", Race, Gender, Id);
+                return;
+            }
             ModelId = template.ModelId;
             BuyBackItems = new ItemContainer(this, SlotType.None, false);
             Slots = new ActionSlot[121]; // 85 in 1.2, 121 in 3.0.3.0, 133 in 3.5.0.3
@@ -1423,13 +1428,27 @@ namespace AAEmu.Game.Models.Game.Char
                     {
                         if (reader.Read())
                         {
-                            var slots = (PacketStream)((byte[])reader.GetValue("slots"));
-                            foreach (var slot in Slots)
+                            var rawSlots = reader.GetValue(reader.GetOrdinal("slots"));
+                            if (rawSlots is byte[] slotBytes && slotBytes.Length > 0)
                             {
-                                slot.Type = (ActionSlotType)slots.ReadByte();
-                                if (slot.Type != ActionSlotType.None)
+                                var slots = (PacketStream)slotBytes;
+                                foreach (var slot in Slots)
                                 {
-                                    slot.ActionId = slots.ReadUInt64();
+                                    if (!slots.HasBytes) break;
+                                    try
+                                    {
+                                        slot.Type = (ActionSlotType)slots.ReadByte();
+                                        if (slot.Type != ActionSlotType.None)
+                                        {
+                                            if (!slots.HasBytes) { slot.Type = ActionSlotType.None; break; }
+                                            slot.ActionId = slots.ReadUInt64();
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _log.Warn("Character.Load: corrupt slots blob for char {0}: {1}", Id, ex.Message);
+                                        break;
+                                    }
                                 }
                             }
                         }
@@ -1626,8 +1645,8 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write(Hp);
             stream.Write(Mp);
             stream.Write(Position.ZoneId);
-            stream.Write(Faction.Id);
-            stream.Write(FactionName);
+            stream.Write(Faction?.Id ?? 0u);
+            stream.Write(FactionName ?? string.Empty);
             stream.Write(Expedition?.Id ?? 0);
             stream.Write(Family);
 

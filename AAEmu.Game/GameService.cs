@@ -13,6 +13,7 @@ using AAEmu.Game.Core.Network.Login;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.Utils.Scripts;
 
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Hosting;
 
 using NLog;
@@ -24,6 +25,31 @@ namespace AAEmu.Game
         private static readonly Logger _log = LogManager.GetCurrentClassLogger();
         public static DateTime StartTime { get; set; }
         public static DateTime EndTime { get; set; }
+
+        /// <summary>
+        /// Runs a manager's Load() step. If the underlying compact.sqlite3 is missing a
+        /// table/column or contains unexpected data, the failure is recorded in
+        /// MissingData.log and the server keeps booting with that manager partially (or
+        /// not at all) loaded. Dependent features will simply be unavailable until the
+        /// data gap is filled.
+        /// </summary>
+        private static void SafeLoad(string name, Action load)
+        {
+            try
+            {
+                load();
+            }
+            catch (SqliteException ex)
+            {
+                _log.Error("{0}.Load() skipped due to SQLite error: {1}", name, ex.Message);
+                MissingDataLogger.Instance.ReportSqlite(name, ex.Message, name + ".Load");
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex, "{0}.Load() failed: {1}", name, ex.Message);
+                MissingDataLogger.Instance.ReportGeneric("LOAD_FAILED", name + ": " + ex.GetType().Name + ": " + ex.Message, name + ".Load");
+            }
+        }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
@@ -38,7 +64,7 @@ namespace AAEmu.Game
             #region Id Managers
             TaskIdManager.Instance.Initialize();
             TaskManager.Instance.Initialize();
-            LocalizationManager.Instance.Load();
+            SafeLoad(nameof(LocalizationManager), () => LocalizationManager.Instance.Load());
             ObjectIdManager.Instance.Initialize();
             TradeIdManager.Instance.Initialize();
             #endregion
@@ -65,47 +91,47 @@ namespace AAEmu.Game
             {
                 WorldManager.Instance.LoadHeightmaps();
             });
-            QuestManager.Instance.Load();
+            SafeLoad(nameof(QuestManager), () => QuestManager.Instance.Load());
 
-            ShipyardManager.Instance.Load();
+            SafeLoad(nameof(ShipyardManager), () => ShipyardManager.Instance.Load());
 
-            FormulaManager.Instance.Load();
-            ExpirienceManager.Instance.Load();
-            ConfigurationManager.Instance.Load();
+            SafeLoad(nameof(FormulaManager), () => FormulaManager.Instance.Load());
+            SafeLoad(nameof(ExpirienceManager), () => ExpirienceManager.Instance.Load());
+            SafeLoad(nameof(ConfigurationManager), () => ConfigurationManager.Instance.Load());
 
             TlIdManager.Instance.Initialize();
-            SpecialtyManager.Instance.Load();
-            ItemManager.Instance.Load();
-            ItemManager.Instance.LoadUserItems();
-            AnimationManager.Instance.Load();
-            PlotManager.Instance.Load();
-            SkillManager.Instance.Load();
-            CraftManager.Instance.Load();
-            MateManager.Instance.Load();
-            SlaveManager.Instance.Load();
-            TeamManager.Instance.Load();
-            AuctionManager.Instance.Load();
-            MailManager.Instance.Load();
+            SafeLoad(nameof(SpecialtyManager), () => SpecialtyManager.Instance.Load());
+            SafeLoad(nameof(ItemManager), () => ItemManager.Instance.Load());
+            SafeLoad(nameof(ItemManager) + ".LoadUserItems", () => ItemManager.Instance.LoadUserItems());
+            SafeLoad(nameof(AnimationManager), () => AnimationManager.Instance.Load());
+            SafeLoad(nameof(PlotManager), () => PlotManager.Instance.Load());
+            SafeLoad(nameof(SkillManager), () => SkillManager.Instance.Load());
+            SafeLoad(nameof(CraftManager), () => CraftManager.Instance.Load());
+            SafeLoad(nameof(MateManager), () => MateManager.Instance.Load());
+            SafeLoad(nameof(SlaveManager), () => SlaveManager.Instance.Load());
+            SafeLoad(nameof(TeamManager), () => TeamManager.Instance.Load());
+            SafeLoad(nameof(AuctionManager), () => AuctionManager.Instance.Load());
+            SafeLoad(nameof(MailManager), () => MailManager.Instance.Load());
 
-            NameManager.Instance.Load();
-            FactionManager.Instance.Load();
-            ExpeditionManager.Instance.Load();
-            CharacterManager.Instance.Load();
-            FamilyManager.Instance.Load();
-            PortalManager.Instance.Load();
-            FriendMananger.Instance.Load();
+            SafeLoad(nameof(NameManager), () => NameManager.Instance.Load());
+            SafeLoad(nameof(FactionManager), () => FactionManager.Instance.Load());
+            SafeLoad(nameof(ExpeditionManager), () => ExpeditionManager.Instance.Load());
+            SafeLoad(nameof(CharacterManager), () => CharacterManager.Instance.Load());
+            SafeLoad(nameof(FamilyManager), () => FamilyManager.Instance.Load());
+            SafeLoad(nameof(PortalManager), () => PortalManager.Instance.Load());
+            SafeLoad(nameof(FriendMananger), () => FriendMananger.Instance.Load());
 
-            NpcManager.Instance.Load();
-            DoodadManager.Instance.Load();
-            HousingManager.Instance.Load();
-            TransferManager.Instance.Load();
-            GimmickManager.Instance.Load();
+            SafeLoad(nameof(NpcManager), () => NpcManager.Instance.Load());
+            SafeLoad(nameof(DoodadManager), () => DoodadManager.Instance.Load());
+            SafeLoad(nameof(HousingManager), () => HousingManager.Instance.Load());
+            SafeLoad(nameof(TransferManager), () => TransferManager.Instance.Load());
+            SafeLoad(nameof(GimmickManager), () => GimmickManager.Instance.Load());
 
             await heightmapTask;
 
-            SpawnManager.Instance.Load();
-            SpawnManager.Instance.SpawnAll();
-            HousingManager.Instance.SpawnAll();
+            SafeLoad(nameof(SpawnManager), () => SpawnManager.Instance.Load());
+            try { SpawnManager.Instance.SpawnAll(); } catch (Exception ex) { _log.Error(ex, "SpawnManager.SpawnAll failed"); }
+            try { HousingManager.Instance.SpawnAll(); } catch (Exception ex) { _log.Error(ex, "HousingManager.SpawnAll failed"); }
             //TransferManager.Instance.SpawnAll();
             #endregion
 

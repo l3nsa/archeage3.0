@@ -33,7 +33,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
         public DoodadTemplate GetTemplate(uint id)
         {
-            return Exist(id) ? _templates[id] : null;
+            if (Exist(id))
+                return _templates[id];
+            AAEmu.Game.Core.Managers.MissingDataLogger.Instance.ReportTemplate("doodad_almighties", id, "DoodadManager.GetTemplate");
+            return null;
         }
 
         public void Load()
@@ -2243,6 +2246,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     }
                 }
 
+                try
+                {
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_spawns";
@@ -2272,6 +2277,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             _funcTemplates["DoodadFuncSpawn"].Add(func.Id, func);
                         }
                     }
+                }
+                }
+                catch (Microsoft.Data.Sqlite.SqliteException ex) when (ex.Message.Contains("doodad_func_spawns"))
+                {
+                    _log.Warn("doodad_func_spawns table missing in compact.sqlite3, DoodadFuncSpawn templates will be empty.");
                 }
 
                 using (var command = connection.CreateCommand())

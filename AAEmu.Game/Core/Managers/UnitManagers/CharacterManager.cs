@@ -5,6 +5,7 @@ using System.IO;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Models;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
@@ -48,7 +49,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
         public CharacterTemplate GetTemplate(byte race, byte gender)
         {
-            return _templates[(byte)(16 * gender + race)];
+            var key = (byte)(16 * gender + race);
+            if (_templates.TryGetValue(key, out var template))
+                return template;
+            Log.Warn("No character template for race={0}, gender={1} (key={2})", race, gender, key);
+            return null;
         }
 
         public AppellationTemplate GetAppellationsTemplate(uint id)
@@ -149,8 +154,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         {
                             var characterId = reader.GetUInt32("character_id");
                             var buffId = reader.GetUInt32("buff_id");
-                            var template = _templates[temp[characterId]];
-                            template.Buffs.Add(buffId);
+                            if (temp.TryGetValue(characterId, out var tKey) && _templates.TryGetValue(tKey, out var tmpl))
+                                tmpl.Buffs.Add(buffId);
                         }
                     }
                 }
@@ -401,15 +406,31 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         .GetZoneId(charTemplate.Pos.WorldId, charTemplate.Pos.X, charTemplate.Pos.Y) // TODO ...
                     };
 
-                    var template = _templates[(byte)(16 + charTemplate.Id)];
-                    template.Position = point;
-                    template.NumInventorySlot = charTemplate.NumInventorySlot;
-                    template.NumBankSlot = charTemplate.NumBankSlot;
+                    var key16 = (byte)(16 + charTemplate.Id);
+                    if (_templates.TryGetValue(key16, out var template))
+                    {
+                        template.Position = point;
+                        template.NumInventorySlot = charTemplate.NumInventorySlot;
+                        template.NumBankSlot = charTemplate.NumBankSlot;
+                    }
+                    else
+                    {
+                        MissingDataLogger.Instance.ReportTemplate("character_templates", key16,
+                            "CharacterManager.Load(race+gender key 16+id)");
+                    }
 
-                    template = _templates[(byte)(32 + charTemplate.Id)];
-                    template.Position = point;
-                    template.NumInventorySlot = charTemplate.NumInventorySlot;
-                    template.NumBankSlot = charTemplate.NumBankSlot;
+                    var key32 = (byte)(32 + charTemplate.Id);
+                    if (_templates.TryGetValue(key32, out template))
+                    {
+                        template.Position = point;
+                        template.NumInventorySlot = charTemplate.NumInventorySlot;
+                        template.NumBankSlot = charTemplate.NumBankSlot;
+                    }
+                    else
+                    {
+                        MissingDataLogger.Instance.ReportTemplate("character_templates", key32,
+                            "CharacterManager.Load(race+gender key 32+id)");
+                    }
                 }
             }
             else
@@ -433,9 +454,15 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             var nameValidationCode = NameManager.Instance.ValidationCharacterName(name);
             if (nameValidationCode == 0)
             {
+                var template = GetTemplate(race, gender);
+                if (template == null)
+                {
+                    connection.SendPacket(new SCCharacterCreationFailedPacket(3));
+                    return;
+                }
+
                 var characterId = CharacterIdManager.Instance.GetNextId();
                 NameManager.Instance.AddCharacterName(characterId, name);
-                var template = GetTemplate(race, gender);
 
                 var character = new Character(customModel)
                 {
@@ -473,24 +500,33 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     character.Slots[i] = new ActionSlot();
                 }
 
-                var items = _abilityItems[ability1];
-                SetEquipItemTemplate(character.Inventory, items.Items.Headgear, EquipmentItemSlot.Head, items.Items.HeadgearGrade);
-                SetEquipItemTemplate(character.Inventory, items.Items.Necklace, EquipmentItemSlot.Neck, items.Items.NecklaceGrade);
-                SetEquipItemTemplate(character.Inventory, items.Items.Shirt, EquipmentItemSlot.Chest, items.Items.ShirtGrade);
-                SetEquipItemTemplate(character.Inventory, items.Items.Belt, EquipmentItemSlot.Waist, items.Items.BeltGrade);
-                SetEquipItemTemplate(character.Inventory, items.Items.Pants, EquipmentItemSlot.Legs, items.Items.PantsGrade);
-                SetEquipItemTemplate(character.Inventory, items.Items.Gloves, EquipmentItemSlot.Hands, items.Items.GlovesGrade);
-                SetEquipItemTemplate(character.Inventory, items.Items.Shoes, EquipmentItemSlot.Feet, items.Items.ShoesGrade);
-                SetEquipItemTemplate(character.Inventory, items.Items.Bracelet, EquipmentItemSlot.Arms, items.Items.BraceletGrade);
-                SetEquipItemTemplate(character.Inventory, items.Items.Back, EquipmentItemSlot.Back, items.Items.BackGrade);
-                SetEquipItemTemplate(character.Inventory, items.Items.Undershirts, EquipmentItemSlot.Undershirt, items.Items.UndershirtsGrade);
-                SetEquipItemTemplate(character.Inventory, items.Items.Underpants, EquipmentItemSlot.Underpants, items.Items.UnderpantsGrade);
-                SetEquipItemTemplate(character.Inventory, items.Items.Mainhand, EquipmentItemSlot.Mainhand, items.Items.MainhandGrade);
-                SetEquipItemTemplate(character.Inventory, items.Items.Offhand, EquipmentItemSlot.Offhand, items.Items.OffhandGrade);
-                SetEquipItemTemplate(character.Inventory, items.Items.Ranged, EquipmentItemSlot.Ranged, items.Items.RangedGrade);
-                SetEquipItemTemplate(character.Inventory, items.Items.Musical, EquipmentItemSlot.Musical, items.Items.MusicalGrade);
-                SetEquipItemTemplate(character.Inventory, items.Items.Cosplay, EquipmentItemSlot.Cosplay, items.Items.CosplayGrade);
-                SetEquipItemTemplate(character.Inventory, items.Items.Stabilizer, EquipmentItemSlot.Stabilizer, items.Items.StabilizerGrade);
+                if (!_abilityItems.TryGetValue(ability1, out var items))
+                {
+                    Log.Warn("No ability items for ability {0}, using empty set", ability1);
+                    items = null;
+                }
+
+                // items for selected ability
+                if (items != null)
+                {
+                    SetEquipItemTemplate(character.Inventory, items.Items.Headgear, EquipmentItemSlot.Head, items.Items.HeadgearGrade);
+                    SetEquipItemTemplate(character.Inventory, items.Items.Necklace, EquipmentItemSlot.Neck, items.Items.NecklaceGrade);
+                    SetEquipItemTemplate(character.Inventory, items.Items.Shirt, EquipmentItemSlot.Chest, items.Items.ShirtGrade);
+                    SetEquipItemTemplate(character.Inventory, items.Items.Belt, EquipmentItemSlot.Waist, items.Items.BeltGrade);
+                    SetEquipItemTemplate(character.Inventory, items.Items.Pants, EquipmentItemSlot.Legs, items.Items.PantsGrade);
+                    SetEquipItemTemplate(character.Inventory, items.Items.Gloves, EquipmentItemSlot.Hands, items.Items.GlovesGrade);
+                    SetEquipItemTemplate(character.Inventory, items.Items.Shoes, EquipmentItemSlot.Feet, items.Items.ShoesGrade);
+                    SetEquipItemTemplate(character.Inventory, items.Items.Bracelet, EquipmentItemSlot.Arms, items.Items.BraceletGrade);
+                    SetEquipItemTemplate(character.Inventory, items.Items.Back, EquipmentItemSlot.Back, items.Items.BackGrade);
+                    SetEquipItemTemplate(character.Inventory, items.Items.Undershirts, EquipmentItemSlot.Undershirt, items.Items.UndershirtsGrade);
+                    SetEquipItemTemplate(character.Inventory, items.Items.Underpants, EquipmentItemSlot.Underpants, items.Items.UnderpantsGrade);
+                    SetEquipItemTemplate(character.Inventory, items.Items.Mainhand, EquipmentItemSlot.Mainhand, items.Items.MainhandGrade);
+                    SetEquipItemTemplate(character.Inventory, items.Items.Offhand, EquipmentItemSlot.Offhand, items.Items.OffhandGrade);
+                    SetEquipItemTemplate(character.Inventory, items.Items.Ranged, EquipmentItemSlot.Ranged, items.Items.RangedGrade);
+                    SetEquipItemTemplate(character.Inventory, items.Items.Musical, EquipmentItemSlot.Musical, items.Items.MusicalGrade);
+                    SetEquipItemTemplate(character.Inventory, items.Items.Cosplay, EquipmentItemSlot.Cosplay, items.Items.CosplayGrade);
+                    SetEquipItemTemplate(character.Inventory, items.Items.Stabilizer, EquipmentItemSlot.Stabilizer, items.Items.StabilizerGrade);
+                }
                 for (var i = 0; i < 7; i++)
                 {
                     //if (body[i] == 0 && template.Items[i] > 0)
@@ -520,17 +556,17 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
 
                 byte slot = 10;
-                foreach (var item in items.Supplies)
+                if (items != null)
                 {
-                    character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Invalid, item.Id, item.Amount, item.Grade);
-                    //var createdItem = ItemManager.Instance.Create(item.Id, item.Amount, item.Grade);
-                    //character.Inventory.AddItem(Models.Game.Items.Actions.ItemTaskType.Invalid, createdItem);
-
-                    character.SetAction(slot, ActionSlotType.Item1, item.Id);
-                    slot++;
+                    foreach (var item in items.Supplies)
+                    {
+                        character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Invalid, item.Id, item.Amount, item.Grade);
+                        character.SetAction(slot, ActionSlotType.Item1, item.Id);
+                        slot++;
+                    }
                 }
 
-                items = _abilityItems[0];
+                _abilityItems.TryGetValue(0, out items);
                 if (items != null)
                 {
                     foreach (var item in items.Supplies)
@@ -649,6 +685,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             if (templateId > 0)
             {
                 item = ItemManager.Instance.Create(templateId, 1, grade);
+                if (item == null)
+                {
+                    Log.Warn("SetEquipItemTemplate: item template {0} not found, skipping slot {1}", templateId, slot);
+                    return;
+                }
                 item.SlotType = SlotType.Equipment;
                 item.Slot = (int)slot;
             }

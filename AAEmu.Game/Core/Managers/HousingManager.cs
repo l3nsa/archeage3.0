@@ -177,9 +177,10 @@ namespace AAEmu.Game.Core.Managers
                             var templateBindings = binding.Find(x => x.TemplateId.Contains(template.Id));
                             using (var command2 = connection.CreateCommand())
                             {
-                                command2.CommandText = "SELECT * FROM housing_binding_doodads WHERE housing_id=@housing_id";
+                                // 3.0+ schema: housing_binding_doodads uses owner_id/owner_type instead of housing_id
+                                command2.CommandText = "SELECT * FROM housing_binding_doodads WHERE owner_id=@owner_id AND owner_type='Housing'";
                                 command2.Prepare();
-                                command2.Parameters.AddWithValue("housing_id", template.Id);
+                                command2.Parameters.AddWithValue("owner_id", template.Id);
                                 using (var reader2 = new SQLiteWrapperReader(command2.ExecuteReader()))
                                 {
                                     var doodads = new List<HousingBindingDoodad>();
@@ -190,7 +191,7 @@ namespace AAEmu.Game.Core.Managers
                                             AttachPointId = reader2.GetUInt32("attach_point_id"),
                                             DoodadId = reader2.GetUInt32("doodad_id"),
                                             ForceDbSave = reader2.GetBoolean("force_db_save", false),
-                                            HoudingId = reader2.GetUInt32("housing_id")
+                                            HoudingId = reader2.GetUInt32("owner_id")
                                         };
 
                                         if (templateBindings != null && templateBindings.AttachPointId.ContainsKey(bindingDoodad.AttachPointId))

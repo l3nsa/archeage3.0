@@ -81,8 +81,8 @@ namespace AAEmu.Game.Core.Network.Game
             }
             catch (Exception e)
             {
-                session.Close();
-                _log.Error(e);
+                _log.Error("[SessionReceiveError] Session {0}: {1}", session?.Ip, e.Message);
+                _log.Debug(e);
             }
         }
 
@@ -184,8 +184,9 @@ namespace AAEmu.Game.Core.Network.Game
             }
             catch (Exception e)
             {
-                connection?.Shutdown();
-                _log.Error(e);
+                _log.Error("[ProtocolError] Client {0}: {1}", connection?.Ip, e.Message);
+                _log.Debug(e);
+                // Don't shutdown — keep the client connected
             }
         }
 
@@ -206,6 +207,7 @@ namespace AAEmu.Game.Core.Network.Game
                 dump.AppendFormat("{0:x2} ", stream.Buffer[i]);
             }
             _log.Error("Unknown packet 0x{0:x2}({3}) from {1}:\n{2}", type, connection.Ip, dump, level);
+            AAEmu.Game.Core.Managers.MissingDataLogger.Instance.ReportPacket(type, level, connection.Ip?.ToString());
         }
     }
 }

@@ -25,7 +25,10 @@ namespace AAEmu.Game.Core.Managers
 
         public QuestTemplate GetTemplate(uint id)
         {
-            return _templates.ContainsKey(id) ? _templates[id] : null;
+            if (_templates.ContainsKey(id))
+                return _templates[id];
+            MissingDataLogger.Instance.ReportTemplate("quest_contexts", id, "QuestManager.GetTemplate");
+            return null;
         }
 
         public QuestSupplies GetSupplies(byte level)
