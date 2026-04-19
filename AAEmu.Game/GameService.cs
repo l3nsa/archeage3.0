@@ -120,6 +120,8 @@ namespace AAEmu.Game
             SafeLoad(nameof(FamilyManager), () => FamilyManager.Instance.Load());
             SafeLoad(nameof(PortalManager), () => PortalManager.Instance.Load());
             SafeLoad(nameof(FriendMananger), () => FriendMananger.Instance.Load());
+            SafeLoad(nameof(CofferManager), () => CofferManager.Instance.Load());
+            SafeLoad(nameof(HeroManager), () => HeroManager.Instance.Load());
 
             SafeLoad(nameof(NpcManager), () => NpcManager.Instance.Load());
             SafeLoad(nameof(DoodadManager), () => DoodadManager.Instance.Load());

@@ -41,10 +41,10 @@ namespace AAEmu.Game.Core.Network.Game
             //RegisterPacket(CSOffsets.CSRequestCommonFarmListPacket, 5, typeof(CSRequestCommonFarmListPacket));
             RegisterPacket(CSOffsets.CSChallengeDuelPacket, 5, typeof(CSChallengeDuelPacket));
             RegisterPacket(CSOffsets.CSStartDuelPacket, 5, typeof(CSStartDuelPacket));
-            //RegisterPacket(CSOffsets.CSHeroRankingListPacket, 5, typeof(CSHeroRankingListPacket));
-            //RegisterPacket(CSOffsets.CSHeroCandidateListPacket, 5, typeof(CSHeroCandidateListPacket));
-            //RegisterPacket(CSOffsets.CSHeroAbstainPacket, 5, typeof(CSHeroAbstainPacket));
-            //RegisterPacket(CSOffsets.CSHeroVotingPacket, 5, typeof(CSHeroVotingPacket));
+            RegisterPacket(CSOffsets.CSHeroRankingListPacket, 5, typeof(CSHeroRankingListPacket));
+            RegisterPacket(CSOffsets.CSHeroCandidateListPacket, 5, typeof(CSHeroCandidateListPacket));
+            RegisterPacket(CSOffsets.CSHeroAbstainPacket, 5, typeof(CSHeroAbstainPacket));
+            RegisterPacket(CSOffsets.CSHeroVotingPacket, 5, typeof(CSHeroVotingPacket));
             RegisterPacket(CSOffsets.CSConvertItemLookPacket, 5, typeof(CSConvertItemLookPacket));
             //RegisterPacket(CSOffsets.CSConvertItemLook2Packet, 5, typeof(CSConvertItemLook2Packet));
             RegisterPacket(CSOffsets.CSSetPingPosPacket, 5, typeof(CSSetPingPosPacket));
@@ -75,7 +75,7 @@ namespace AAEmu.Game.Core.Network.Game
             //RegisterPacket(CSOffsets.CSSendNationInfoSetPacket, 5, typeof(CSSendNationInfoSetPacket));
             //RegisterPacket(CSOffsets.CSRankCharacterPacket, 5, typeof(CSRankCharacterPacket));
             //RegisterPacket(CSOffsets.CSRankSnapshotPacket, 5, typeof(CSRankSnapshotPacket));
-            //RegisterPacket(CSOffsets.CSHeroRequestRankDataPacket, 5, typeof(CSHeroRequestRankDataPacket));
+            RegisterPacket(CSOffsets.CSHeroRequestRankDataPacket, 5, typeof(CSHeroRequestRankDataPacket));
             //RegisterPacket(CSOffsets.CSGetRankerInformationPacket, 5, typeof(CSGetRankerInformationPacket));
             //RegisterPacket(CSOffsets.CSRequestRankerAppearancePacket, 5, typeof(CSRequestRankerAppearancePacket));
             //RegisterPacket(CSOffsets.CSRequestSecondPassKeyTablesPacket, 5, typeof(CSRequestSecondPassKeyTablesPacket));
